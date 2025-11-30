@@ -1,7 +1,22 @@
 import React from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import '../App.css'
 
-function Header({ title = 'Arcade Mania', muted = false, toggleMute = () => {}, rightLabel, rightOnClick, dropdownItems }) {
+function Header({ title = 'Arcade Mania', muted = false, toggleMute = () => {}, rightLabel, rightTo, dropdownItems }) {
+  const location = useLocation()
+  const auth = useAuth()
+  const navigate = useNavigate()
+
+  const handleRight = () => {
+    if (rightTo) navigate(rightTo)
+  }
+
+  const handleLogout = () => {
+    auth && auth.logout && auth.logout()
+    navigate('/login')
+  }
+
   return (
     <>
       <div className="side-bar left" />
@@ -23,7 +38,15 @@ function Header({ title = 'Arcade Mania', muted = false, toggleMute = () => {}, 
               </div>
             </div>
           ) : rightLabel ? (
-            <button className="header-action-btn" onClick={rightOnClick}>{rightLabel}</button>
+            <button className="header-action-btn" onClick={handleRight}>{rightLabel}</button>
+          ) : auth && auth.user ? (
+            <div className="dropdown">
+              <button className="dropdown-btn">☰</button>
+              <div className="dropdown-content">
+                <a href="#" onClick={(e) => { e.preventDefault(); navigate('/') }}>Profile</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleLogout() }}>Logout</a>
+              </div>
+            </div>
           ) : null}
         </div>
       </header>

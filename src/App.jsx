@@ -1,15 +1,17 @@
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import './App.css'
 import Main from './pages/Main'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Header from './components/Header'
 import bgMusic from './assets/AI created 8 Bits theme  Retro Gaming Music.mp3'
+import { AuthProvider, RequireAuth } from './auth/AuthProvider'
 
-function App() {
-  const [page, setPage] = useState('login') // 'main' | 'login' | 'register'
+function AppContent() {
   const audioRef = useRef(null)
   const [muted, setMuted] = useState(false)
+  const location = useLocation()
 
   useEffect(() => {
     const audio = audioRef.current
@@ -41,28 +43,23 @@ function App() {
     }
   }
 
-  // Header right action depends on current page
   const headerProps = {
     muted,
     toggleMute,
     title: 'Arcade Mania',
   }
 
-  if (page === 'main') {
+  if (location.pathname === '/') {
     headerProps.dropdownItems = [
       { label: 'Profile', onClick: () => console.log('Profile') },
       { label: 'Logout', onClick: () => console.log('Logout') },
     ]
-  }
-
-  if (page === 'login') {
+  } else if (location.pathname === '/login') {
     headerProps.rightLabel = 'Regisztráció'
-    headerProps.rightOnClick = () => setPage('register')
-  }
-
-  if (page === 'register') {
+    headerProps.rightTo = '/register'
+  } else if (location.pathname === '/register') {
     headerProps.rightLabel = 'Bejelentkezés'
-    headerProps.rightOnClick = () => setPage('login')
+    headerProps.rightTo = '/login'
   }
 
   return (
@@ -70,11 +67,21 @@ function App() {
       <audio ref={audioRef} src={bgMusic} />
       <Header {...headerProps} />
 
-      {page === 'main' && <Main onNavigate={(p) => setPage(p)} />}
-      {page === 'login' && <Login onNavigate={(p) => setPage(p)} />}
-      {page === 'register' && <Register onNavigate={(p) => setPage(p)} />}
+      <Routes>
+        <Route path="/" element={<RequireAuth><Main /></RequireAuth>} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Routes>
     </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}

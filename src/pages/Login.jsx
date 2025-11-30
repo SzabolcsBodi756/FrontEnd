@@ -1,20 +1,29 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
+import * as authService from '../services/authService'
 
-function Login({ onNavigate }) {
+function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState(null)
+  const navigate = useNavigate()
+  const auth = useAuth()
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const raw = localStorage.getItem('mockUsers')
-    const users = raw ? JSON.parse(raw) : []
-    const found = users.find((u) => u.username === username && u.password === password)
-    if (found) {
-      setMessage({ type: 'success', text: 'Sikeres bejelentkezés' })
-    } else {
-      setMessage({ type: 'error', text: 'Hibás felhasználónév vagy jelszó' })
-    }
+    // Use the authService abstraction. It currently uses a local mock,
+    // but when you adapt the service to the real API (see src/services/authService.js),
+    // no further changes are required here.
+    authService.login(username, password)
+      .then((user) => {
+        auth.login(user.username)
+        setMessage({ type: 'success', text: 'Sikeres bejelentkezés, átvitel a főoldalra...' })
+        navigate('/', { replace: true })
+      })
+      .catch((err) => {
+        setMessage({ type: 'error', text: err.message || 'Hibás felhasználónév vagy jelszó' })
+      })
   }
 
   // (Teszt gomb áthelyezve a Main.jsx-be.)
@@ -40,9 +49,7 @@ function Login({ onNavigate }) {
           <button type="submit">Bejelentkezés</button>
         </form>
 
-        <div style={{ marginTop: 12 }}>
-          <button type="button" onClick={() => onNavigate && onNavigate('main')}>Ugrás a főoldalra (teszt)</button>
-        </div>
+        {/* Direct navigation to main removed — main is protected until login */}
 
         {message && (
           <div style={{ marginTop: 12, color: message.type === 'error' ? 'salmon' : 'lightgreen' }}>

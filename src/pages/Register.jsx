@@ -1,32 +1,27 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import * as authService from '../services/authService'
 
-function Register({ onNavigate }) {
+function Register() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState(null)
+  const navigate = useNavigate()
 
   const handleSubmit = (e) => {
     e.preventDefault()
-
-    // In a real app you'd POST to your API:
-    // fetch('/api/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) })
-
-    const raw = localStorage.getItem('mockUsers')
-    const users = raw ? JSON.parse(raw) : []
-    const exists = users.some((u) => u.username === username)
-    if (exists) {
-      setMessage({ type: 'error', text: 'A felhasználónév már foglalt' })
-      return
-    }
-
-    const newUser = { username, password }
-    users.push(newUser)
-    localStorage.setItem('mockUsers', JSON.stringify(users))
-    setMessage({ type: 'success', text: 'Regisztráció sikeres — most bejelentkezhetsz' })
-    setUsername('')
-    setPassword('')
-    // Navigate to login after a short delay so user sees the success message
-    setTimeout(() => onNavigate && onNavigate('login'), 800)
+    // Use the authService abstraction so switching to a real API is easy:
+    // authService.register will either call your backend (when configured) or use the local mock.
+    authService.register(username, password)
+      .then(() => {
+        setMessage({ type: 'success', text: 'Regisztráció sikeres — most bejelentkezhetsz' })
+        setUsername('')
+        setPassword('')
+        setTimeout(() => navigate('/login'), 800)
+      })
+      .catch((err) => {
+        setMessage({ type: 'error', text: err.message || 'Hiba a regisztráció során' })
+      })
   }
 
   return (
