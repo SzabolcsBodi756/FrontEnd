@@ -13,26 +13,35 @@ function AppContent() {
   const [muted, setMuted] = useState(false)
   const location = useLocation()
 
+  // háttérzene indítása / feloldása kattintásra
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
+
     audio.loop = true
     let resumeMusic = null
+
     audio.play().catch(() => {
       resumeMusic = () => {
         audio.play()
-        if (resumeMusic) document.removeEventListener('click', resumeMusic)
+        if (resumeMusic) {
+          document.removeEventListener('click', resumeMusic)
+        }
       }
       document.addEventListener('click', resumeMusic)
     })
+
     return () => {
-      if (resumeMusic) document.removeEventListener('click', resumeMusic)
+      if (resumeMusic) {
+        document.removeEventListener('click', resumeMusic)
+      }
     }
   }, [])
 
   const toggleMute = () => {
     const audio = audioRef.current
     if (!audio) return
+
     if (muted) {
       audio.play()
       setMuted(false)
@@ -46,15 +55,13 @@ function AppContent() {
   const headerProps = {
     muted,
     toggleMute,
-    title: 'Arcade Mania',
+    title: 'Arcade Mania'
   }
 
-  if (location.pathname === '/') {
-    headerProps.dropdownItems = [
-      { label: 'Profile', onClick: () => console.log('Profile') },
-      { label: 'Logout', onClick: () => console.log('Logout') },
-    ]
-  } else if (location.pathname === '/login') {
+  // 🌐 Csak a login / register oldalon adjuk meg a jobb oldali gombot.
+  // A főoldalon ("/") a Header saját auth-alapú menüje jelenik meg
+  // (Profile + Logout), ami már hívja az auth.logout()-ot.
+  if (location.pathname === '/login') {
     headerProps.rightLabel = 'Regisztráció'
     headerProps.rightTo = '/register'
   } else if (location.pathname === '/register') {
@@ -68,7 +75,14 @@ function AppContent() {
       <Header {...headerProps} />
 
       <Routes>
-        <Route path="/" element={<RequireAuth><Main /></RequireAuth>} />
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <Main />
+            </RequireAuth>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>

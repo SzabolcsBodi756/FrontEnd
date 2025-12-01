@@ -17,11 +17,8 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem('authUser')
   }, [user])
 
-  const login = (username) => {
-    // If your backend returns a token, store it here (or in authService)
-    // Example when switching to real API:
-    // localStorage.setItem('authToken', token)
-    setUser({ username })
+  const login = (user) => {
+  setUser(user)
   }
   const logout = () => setUser(null)
 

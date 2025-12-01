@@ -17,7 +17,7 @@ function Login() {
     // no further changes are required here.
     authService.login(username, password)
       .then((user) => {
-        auth.login(user.username)
+        auth.login(user)
         setMessage({ type: 'success', text: 'Sikeres bejelentkezés, átvitel a főoldalra...' })
         navigate('/', { replace: true })
       })
