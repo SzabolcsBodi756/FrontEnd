@@ -1,9 +1,12 @@
+// src/App.jsx
 import { useRef, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import './App.css'
 import Main from './pages/Main'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Profile from './pages/Profile'
+import Leaderboard from './pages/Leaderboard'
 import Header from './components/Header'
 import bgMusic from './assets/AI created 8 Bits theme  Retro Gaming Music.mp3'
 import { AuthProvider, RequireAuth } from './auth/AuthProvider'
@@ -13,7 +16,7 @@ function AppContent() {
   const [muted, setMuted] = useState(false)
   const location = useLocation()
 
-  // háttérzene indítása / feloldása kattintásra
+  // háttérzene
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -58,9 +61,7 @@ function AppContent() {
     title: 'Arcade Mania'
   }
 
-  // 🌐 Csak a login / register oldalon adjuk meg a jobb oldali gombot.
-  // A főoldalon ("/") a Header saját auth-alapú menüje jelenik meg
-  // (Profile + Logout), ami már hívja az auth.logout()-ot.
+  // Login / Register oldalon jobb felső gomb
   if (location.pathname === '/login') {
     headerProps.rightLabel = 'Regisztráció'
     headerProps.rightTo = '/register'
@@ -83,6 +84,23 @@ function AppContent() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <RequireAuth>
+              <Leaderboard />
+            </RequireAuth>
+          }
+        />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>
