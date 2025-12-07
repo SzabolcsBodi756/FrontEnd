@@ -1,20 +1,49 @@
 // src/services/userService.js
 const API_BASE = 'http://localhost:5118/api/Users'
 
-// Egy user publikus adatai (profil oldal)
-export async function getPublicUser(id) {
-  const response = await fetch(`${API_BASE}/public/${id}`, {
+// Közös helper GET + biztonságos JSON olvasásra
+async function getJson(url, defaultErrorMessage) {
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
     }
   })
 
-  const data = await response.json()
+  // 1) először szövegként olvassuk be
+  const text = await response.text()
 
-  if (!response.ok) {
-    throw new Error(data.message || 'Hiba a profil lekérésekor')
+  if (!text) {
+    // teljesen üres body
+    if (!response.ok) {
+      throw new Error(defaultErrorMessage)
+    }
+    // ha mégis OK és üres, akkor nincs mit visszaadni
+    return { message: '', result: null }
   }
+
+  // 2) próbáljuk JSON-ná alakítani
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('Érvénytelen JSON válasz érkezett a szervertől.')
+  }
+
+  // 3) státusz ellenőrzés
+  if (!response.ok) {
+    throw new Error(data.message || defaultErrorMessage)
+  }
+
+  return data
+}
+
+// Egy user publikus adatai (profil oldal)
+export async function getPublicUser(id) {
+  const data = await getJson(
+    `${API_BASE}/public/${id}`,
+    'Hiba a profil lekérésekor'
+  )
 
   // { name: string, scores: [ { gameId, gameName, highScore } ] }
   return data.result
@@ -22,18 +51,10 @@ export async function getPublicUser(id) {
 
 // Összes user publikus adatai (leaderboard)
 export async function getAllPublicUsers() {
-  const response = await fetch(`${API_BASE}/public`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Hiba a leaderboard lekérésekor')
-  }
+  const data = await getJson(
+    `${API_BASE}/public`,
+    'Hiba a leaderboard lekérésekor'
+  )
 
   // [ { name, scores: [...] }, ... ]
   return data.result

@@ -362,3 +362,135 @@ header.arcade-header {
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
 }
 
+/* === Leaderboard layout === */
+
+.page-container {
+  text-align: center;
+  margin-top: 100px;
+  padding: 20px;
+}
+
+.page-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 32px;
+  margin-bottom: 24px;
+}
+
+/* 🔍 Keresőmező középen */
+.leaderboard-search-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0 40px 0;
+}
+
+.leaderboard-search {
+  width: 280px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+
+  background: #000;
+  color: #00ff99;
+
+  border: 2px solid #00ff99;
+  border-radius: 6px;
+  outline: none;
+}
+
+.leaderboard-search::placeholder {
+  color: #66ffcc;
+}
+
+/* Info / error szövegek */
+.info-text {
+  margin-top: 20px;
+  color: #ffffff;
+}
+
+.error-text {
+  margin-top: 20px;
+  color: #ff6666;
+}
+
+/* ⚙️ 4 oszlopos kártyarács */
+.leaderboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 32px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 60px auto;
+}
+
+/* Ha nincs találat – szöveg középen, rácsban is jól mutat */
+.no-user-text {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 40px;
+  color: #ff6666;
+  font-size: 16px;
+}
+
+/* Kártyastílus – ugyanaz, mint a profilnál (ha már létezik nálad,
+   akkor ezt NEM muszáj duplázni, csak győződj meg róla, hogy a
+   .profile-card és társai be vannak állítva!) */
+
+.profile-card {
+  border: 3px solid #00ff99;
+  border-radius: 12px;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  text-align: left;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.profile-card-header {
+  border-bottom: 2px solid #00ff99;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.profile-card-label {
+  color: #66ffcc;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.profile-card-value {
+  font-size: 18px;
+}
+
+.profile-card-body-title {
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.profile-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin: 2px 0;
+}
+
+/* Reszponzív törések (ajánlott) */
+@media (max-width: 1100px) {
+  .leaderboard-grid {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .leaderboard-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 500px) {
+  .leaderboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
