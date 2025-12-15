@@ -7,13 +7,15 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Leaderboard from './pages/Leaderboard'
+import Game1 from './Games/Game1.jsx'
+import Game3 from './Games/Game3.jsx'
 import Header from './components/Header'
-import bgMusic from './assets/AI created 8 Bits theme  Retro Gaming Music.mp3'
+//import bgMusic from './assets/AI created 8 Bits theme  Retro Gaming Music.mp3'
 import { AuthProvider, RequireAuth } from './auth/AuthProvider'
 
 function AppContent() {
   const audioRef = useRef(null)
-  const [muted, setMuted] = useState(false)
+  const [muted, setMuted] = useState(true)
   const location = useLocation()
 
   // háttérzene
@@ -72,7 +74,7 @@ function AppContent() {
 
   return (
     <div>
-      <audio ref={audioRef} src={bgMusic} />
+      <audio ref={audioRef} src={"bgMusic"} />
       <Header {...headerProps} />
 
       <Routes>
@@ -100,6 +102,9 @@ function AppContent() {
             </RequireAuth>
           }
         />
+
+        <Route path="/game1" element={<Game1 />} />
+        <Route path="/game3" element={<Game3 />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

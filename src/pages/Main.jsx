@@ -3,8 +3,10 @@ import '../App.css'
 import game1 from '../assets/game1.png'
 import card from '../assets/card.png'
 import snake from '../assets/snake.png'
+import { useNavigate } from 'react-router-dom'
 
 function Main() {
+	const navigate = useNavigate()
 
 	return (
 		<div className="arcade-page">
@@ -13,7 +15,7 @@ function Main() {
 					<div className="game-card card-style">
 						<img src={game1} alt="Game 1" />
 						<h3 style={{ color: 'white', fontSize: 14, margin: '10px 0' }}>Fighter</h3>
-						<button>Play Game</button>
+						<button onClick={() => navigate('/game1')}>Play Game</button>
 					</div>
 
 					<div className="game-card card-style">
@@ -25,7 +27,7 @@ function Main() {
 					<div className="game-card card-style">
 						<img src={snake} alt="Game 3" />
 						<h3 style={{ color: 'white', fontSize: 14, margin: '10px 0' }}>Snake</h3>
-						<button>Play Game</button>
+						<button onClick={() => navigate('/game3')}>Play Game</button>
 					</div>
 				</div>
 

@@ -54,10 +54,11 @@ function Header({
     } else {
       // Egyéb védett oldalakon – fallback
       menuItems = [
-        { label: 'Main', to: '/' },
+        { label: 'Main', to: '/' }
+        /*
         { label: 'Profil', to: '/profile' },
         { label: 'Leaderboard', to: '/leaderboard' },
-        { label: 'Logout', action: handleLogout }
+        { label: 'Logout', action: handleLogout }*/
       ]
     }
   }

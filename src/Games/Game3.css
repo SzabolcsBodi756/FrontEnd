@@ -1,0 +1,201 @@
+/* ================================
+   Game3 (Snake) — CSÍKMENTES CSS
+   - Nincs top/bottom/oldalsó fekete sáv
+   - Canvas mindig befér (nem lóg ki)
+   - Bal: Score+High, Jobb: Back
+================================== */
+
+.game3-page {
+  position: fixed;
+  top: 70px;            /* app header alatt */
+  left: 35px;
+  right: 35px;
+  bottom: 0;
+
+  overflow: hidden;
+
+  background-position: center;
+  background-size: cover;
+  background-image: url('./assets/game-bg.png'), linear-gradient(180deg, #032a12 0%, #071b0b 100%);
+}
+
+.arcade-frame {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  height: 100%;
+  padding: 18px;
+  box-sizing: border-box;
+
+  pointer-events: auto;
+
+  /* reszponzív keret, hogy biztosan ne lógjon ki */
+  max-width: 1280px;
+  max-height: 720px;
+  margin: 0 auto;
+}
+
+/* ====== CSÍKMENTES JÁTÉKTÉR ====== */
+/* Ez kapja a teljes maradék helyet, és középre teszi a canvas-t */
+.screen-center {
+  position: relative;
+
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+  border-radius: 10px;
+
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.25);
+}
+
+/* FONTOS: NE legyen width/height 100% !important,
+   mert az felülírja a JS-ben beállított px méretet */
+.screen-center canvas {
+  display: block;
+  image-rendering: pixelated;
+  pointer-events: auto;
+
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ====== OVERLAY ====== */
+.start-overlay {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 2000;
+  pointer-events: auto;
+}
+
+.start-text {
+  font-family: 'Press Start 2P', cursive;
+  color: #b8ffb8;
+
+  background: rgba(0,0,0,0.6);
+  padding: 18px 28px;
+  border-radius: 8px;
+
+  border: 2px solid rgba(102,255,204,0.12);
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1 }
+  50% { transform: scale(1.05); opacity: 0.9 }
+  100% { transform: scale(1); opacity: 1 }
+}
+
+/* ====== HUD (BAL) ====== */
+.score {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 4500;
+
+  font-family: 'Press Start 2P', cursive;
+  color: #66ffcc;
+
+  background: rgba(0,0,0,0.6);
+  padding: 8px 12px;
+  border: 2px solid rgba(102,255,204,0.15);
+  border-radius: 6px;
+
+  line-height: 1.35;
+}
+
+/* ====== BACK (JOBB) ====== */
+.back {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4500;
+
+  font-family: 'Press Start 2P', cursive;
+  color: #66ffcc;
+
+  background: rgba(0,0,0,0.6);
+  padding: 8px 12px;
+  border: 2px solid rgba(102,255,204,0.15);
+  border-radius: 6px;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.back:focus {
+  outline: 2px solid rgba(102,255,204,0.18);
+}
+
+/* ====== TOUCH CONTROLS (MOBIL) ====== */
+.touch-controls {
+  position: fixed;
+  left: 36px;
+  bottom: 22px;
+
+  display: none; /* desktopon rejtve */
+  gap: 12px;
+  align-items: center;
+
+  z-index: 4000;
+  pointer-events: auto;
+}
+
+.dpad { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.dpad-row { display: flex; gap: 8px; }
+
+.dpad-btn {
+  width: 56px;
+  height: 44px;
+
+  border-radius: 6px;
+  border: 2px solid rgba(255,255,255,0.06);
+
+  background: linear-gradient(180deg,#0b0b0b,#111111);
+  color: #c8ffd9;
+
+  font-size: 18px;
+  font-family: 'Press Start 2P', cursive;
+}
+
+.dpad-btn.btn {
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 6px;
+  font-family: 'Press Start 2P', cursive;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 900px) {
+  .game3-page {
+    left: 8px;
+    right: 8px;
+    top: 56px;
+  }
+
+  .touch-controls {
+    display: flex;
+  }
+
+  /* kisebb kijelzőn a HUD ne legyen túl széles */
+  .score, .back {
+    max-width: 45vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
