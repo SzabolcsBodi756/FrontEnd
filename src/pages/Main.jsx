@@ -21,7 +21,7 @@ function Main() {
 					<div className="game-card card-style">
 						<img src={card} alt="Game 2" />
 						<h3 style={{ color: 'white', fontSize: 14, margin: '10px 0' }}>Memory</h3>
-						<button>Play Game</button>
+						<button onClick={() => navigate('/game2')}>Play Game</button>
 					</div>
 
 					<div className="game-card card-style">

@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Leaderboard from './pages/Leaderboard'
 import Game1 from './Games/Game1.jsx'
+import Game2 from './Games/Game2.jsx'
 import Game3 from './Games/Game3.jsx'
 import Header from './components/Header'
 //import bgMusic from './assets/AI created 8 Bits theme  Retro Gaming Music.mp3'
@@ -104,6 +105,7 @@ function AppContent() {
         />
 
         <Route path="/game1" element={<Game1 />} />
+        <Route path="/game2" element={<Game2 />} />
         <Route path="/game3" element={<Game3 />} />
 
         <Route path="/login" element={<Login />} />

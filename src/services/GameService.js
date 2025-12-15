@@ -87,7 +87,7 @@ function buildPreservingScoresPayload(adminUserResult, targetGameId, newHighScor
     }))
     .filter(x => !!x.gameId)
 
-  // Ha nincs lista, legalább a targetet küldjük (de normál esetben van)
+  // Ha nincs lista, legalább a targetet küldjük
   if (normalized.length === 0) {
     return [{ gameId: targetGameId, highScore: newHighScore }]
   }
@@ -102,7 +102,7 @@ function buildPreservingScoresPayload(adminUserResult, targetGameId, newHighScor
     return x
   })
 
-  // Ha valamiért nem volt benne, hozzáadjuk
+  // Ha nem volt benne, hozzáadjuk
   if (!found) {
     updated.push({ gameId: targetGameId, highScore: newHighScore })
   }
@@ -139,15 +139,16 @@ export async function updateSingleHighScorePreserveOthers(userId, adminUserResul
 
 /**
  * A játékok ezt hívják.
- * Logika:
- * 1) GET /admin/{id} => DB highscore kiolvasás
- * 2) ha új score > DB highscore => frissítjük
- * 3) ha új score <= DB highscore => nem frissítjük
  *
- * FONTOS: a 0-t NEM dobjuk el, tehát 0 is átmehet a logikán.
- * (Ha DB-ben is 0, akkor opcionálisan "megerősíthetjük" a mentést.)
+ * DEFAULT: higher is better (Snake / Fighter)
+ * Memory: lower is better + DB=0 esetén mindig ments:
+ *   submitScore('Memory', flips, user, { mode: 'lower', zeroMeansUnset: true })
+ *
+ * options:
+ * - mode: 'higher' | 'lower'
+ * - zeroMeansUnset: boolean (csak 'lower' módban releváns)
  */
-export async function submitScore(gameName, score, userOrId) {
+export async function submitScore(gameName, score, userOrId, options = {}) {
   try {
     const userId =
       typeof userOrId === 'string'
@@ -156,7 +157,10 @@ export async function submitScore(gameName, score, userOrId) {
 
     if (!userId) return false
 
-    const s = toNumber(score) // 0 teljesen OK
+    const s = toNumber(score)
+
+    const mode = options.mode || 'higher' // 'higher' | 'lower'
+    const zeroMeansUnset = options.zeroMeansUnset ?? false
 
     const adminUser = await getAdminUser(userId)
     const { highScore: dbHigh, gameId } = extractHighScoreForGame(adminUser, gameName)
@@ -167,21 +171,27 @@ export async function submitScore(gameName, score, userOrId) {
       return false
     }
 
-    // Ha az új score nagyobb: frissítünk
-    if (s > dbHigh) {
+    let shouldUpdate = false
+
+    if (mode === 'lower') {
+      // Memory: kisebb = jobb
+      if (zeroMeansUnset && dbHigh === 0) {
+        // DB=0 => még nincs valós best score => mindig mentünk
+        shouldUpdate = true
+      } else {
+        // DB>0 => csak akkor mentünk, ha kisebb
+        shouldUpdate = (dbHigh > 0 && s < dbHigh)
+      }
+    } else {
+      // Default: nagyobb = jobb
+      shouldUpdate = s > dbHigh
+    }
+
+    if (shouldUpdate) {
       await updateSingleHighScorePreserveOthers(userId, adminUser, gameId, s)
       return true
     }
 
-    // ✅ 0-t is "fel lehet tölteni" igény szerint:
-    // Ha 0 a score, és 0 a dbHigh, akkor is megküldjük egyszer,
-    // hogy biztosan rögzítve legyen (pl. init / konzisztencia okból).
-    if (s === 0 && dbHigh === 0) {
-      await updateSingleHighScorePreserveOthers(userId, adminUser, gameId, 0)
-      return true
-    }
-
-    // Egyébként nincs mit frissíteni
     return true
   } catch (e) {
     console.warn('submitScore failed', e)
