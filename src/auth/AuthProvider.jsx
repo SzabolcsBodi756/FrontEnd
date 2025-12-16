@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { logout as clearToken } from '../services/authService'
 
 const AuthContext = createContext(null)
 
@@ -18,9 +19,13 @@ export function AuthProvider({ children }) {
   }, [user])
 
   const login = (user) => {
-  setUser(user)
+    setUser(user)
   }
-  const logout = () => setUser(null)
+
+  const logout = () => {
+    setUser(null)
+    clearToken() // ✅ JWT token törlése is
+  }
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
@@ -36,8 +41,10 @@ export function useAuth() {
 export function RequireAuth({ children }) {
   const auth = useAuth()
   const location = useLocation()
+
   if (!auth || !auth.user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
+
   return children
 }

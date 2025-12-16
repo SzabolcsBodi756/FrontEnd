@@ -1,5 +1,74 @@
 // src/services/gameService.js
+
 const API_BASE = 'http://localhost:5118/api/Users'
+
+// --- ADMIN TOKEN (WPF-mód) ---
+const ADMIN_TOKEN_KEY = 'arcade_admin_token'
+
+// 1) Ajánlott: .env-ből (Vite esetén)
+const ADMIN_SERVICE_KEY =
+  (import.meta?.env?.VITE_ADMIN_SERVICE_KEY) ||
+  // 2) Ha nincs .env, akkor ide írd be fixen:
+  'ArcadeMania_WPF_ServiceKey_AtLeast_32_Chars!'
+
+async function ensureAdminToken() {
+  const existing = localStorage.getItem(ADMIN_TOKEN_KEY)
+  if (existing) return existing
+
+  const resp = await fetch(`${API_BASE}/admin-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ serviceKey: ADMIN_SERVICE_KEY })
+  })
+
+  const text = await resp.text().catch(() => '')
+  if (!resp.ok) {
+    throw new Error(text || `Admin token request failed (${resp.status})`)
+  }
+
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('Admin token válasz nem JSON.')
+  }
+
+  const token = data?.token
+  if (!token) throw new Error('Admin token válasz nem tartalmaz tokent.')
+
+  localStorage.setItem(ADMIN_TOKEN_KEY, token)
+  return token
+}
+
+async function adminFetch(url, options = {}, retry = true) {
+  const token = await ensureAdminToken()
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`
+  }
+
+  const resp = await fetch(url, { ...options, headers })
+
+  // ha 401 → lehet lejárt/rossz token → töröljük, újrakérjük és 1x újrapróbáljuk
+  if (resp.status === 401 && retry) {
+    localStorage.removeItem(ADMIN_TOKEN_KEY)
+    const fresh = await ensureAdminToken()
+
+    const headers2 = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+      Authorization: `Bearer ${fresh}`
+    }
+
+    return fetch(url, { ...options, headers: headers2 })
+  }
+
+  return resp
+}
+
+// ---------------------------------------------------
 
 function normalizeName(s) {
   return String(s || '').trim().toLowerCase()
@@ -19,21 +88,23 @@ function toNumber(x) {
  * Visszaadja az admin user adatokat + score listát
  */
 export async function getAdminUser(userId) {
-  const resp = await fetch(`${API_BASE}/admin/${userId}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
+  const resp = await adminFetch(`${API_BASE}/admin/${userId}`, {
+    method: 'GET'
   })
 
   let data = null
+  const text = await resp.text().catch(() => '')
+
   try {
-    data = await resp.json()
+    data = text ? JSON.parse(text) : null
   } catch {
-    const txt = await resp.text().catch(() => '')
-    throw new Error(txt || 'Failed to fetch admin user')
+    // ha nem JSON, dobjuk a text-et
+    if (!resp.ok) throw new Error(text || 'Failed to fetch admin user')
+    return null
   }
 
   if (!resp.ok) {
-    throw new Error(data?.message || 'Failed to fetch admin user')
+    throw new Error(data?.message || text || 'Failed to fetch admin user')
   }
 
   return data?.result
@@ -79,7 +150,6 @@ export function extractHighScoreForGame(adminUserResult, gameName) {
 function buildPreservingScoresPayload(adminUserResult, targetGameId, newHighScore) {
   const scores = getScoresArray(adminUserResult)
 
-  // Egységesítsük (gameId + highScore)
   const normalized = scores
     .map(s => ({
       gameId: toGuidString(s.gameId ?? s.GameId ?? s.gameID ?? s.GameID ?? null),
@@ -87,12 +157,10 @@ function buildPreservingScoresPayload(adminUserResult, targetGameId, newHighScor
     }))
     .filter(x => !!x.gameId)
 
-  // Ha nincs lista, legalább a targetet küldjük
   if (normalized.length === 0) {
     return [{ gameId: targetGameId, highScore: newHighScore }]
   }
 
-  // Target frissítése (ha megtaláljuk)
   let found = false
   const updated = normalized.map(x => {
     if (x.gameId === targetGameId) {
@@ -102,7 +170,6 @@ function buildPreservingScoresPayload(adminUserResult, targetGameId, newHighScor
     return x
   })
 
-  // Ha nem volt benne, hozzáadjuk
   if (!found) {
     updated.push({ gameId: targetGameId, highScore: newHighScore })
   }
@@ -123,9 +190,8 @@ export async function updateSingleHighScorePreserveOthers(userId, adminUserResul
     scores: buildPreservingScoresPayload(adminUserResult, gameId, newHighScore)
   }
 
-  const resp = await fetch(`${API_BASE}/admin/${userId}`, {
+  const resp = await adminFetch(`${API_BASE}/admin/${userId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
 
@@ -139,14 +205,6 @@ export async function updateSingleHighScorePreserveOthers(userId, adminUserResul
 
 /**
  * A játékok ezt hívják.
- *
- * DEFAULT: higher is better (Snake / Fighter)
- * Memory: lower is better + DB=0 esetén mindig ments:
- *   submitScore('Memory', flips, user, { mode: 'lower', zeroMeansUnset: true })
- *
- * options:
- * - mode: 'higher' | 'lower'
- * - zeroMeansUnset: boolean (csak 'lower' módban releváns)
  */
 export async function submitScore(gameName, score, userOrId, options = {}) {
   try {
@@ -159,13 +217,12 @@ export async function submitScore(gameName, score, userOrId, options = {}) {
 
     const s = toNumber(score)
 
-    const mode = options.mode || 'higher' // 'higher' | 'lower'
+    const mode = options.mode || 'higher'
     const zeroMeansUnset = options.zeroMeansUnset ?? false
 
     const adminUser = await getAdminUser(userId)
     const { highScore: dbHigh, gameId } = extractHighScoreForGame(adminUser, gameName)
 
-    // Ha nincs gameId a GET válaszban, nem tudunk PUT-tal frissíteni.
     if (!gameId) {
       console.warn('[submitScore] Missing gameId in admin GET response for game:', gameName)
       return false
@@ -174,16 +231,12 @@ export async function submitScore(gameName, score, userOrId, options = {}) {
     let shouldUpdate = false
 
     if (mode === 'lower') {
-      // Memory: kisebb = jobb
       if (zeroMeansUnset && dbHigh === 0) {
-        // DB=0 => még nincs valós best score => mindig mentünk
         shouldUpdate = true
       } else {
-        // DB>0 => csak akkor mentünk, ha kisebb
         shouldUpdate = (dbHigh > 0 && s < dbHigh)
       }
     } else {
-      // Default: nagyobb = jobb
       shouldUpdate = s > dbHigh
     }
 

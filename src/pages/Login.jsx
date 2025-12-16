@@ -13,7 +13,6 @@ function Login() {
   const location = useLocation()
   const auth = useAuth()
 
-  // Ha a RequireAuth dobott ide, onnan megyünk vissza login után
   const from = location.state?.from?.pathname || '/'
 
   const handleSubmit = async (e) => {
@@ -34,11 +33,16 @@ function Login() {
 
     try {
       const user = await authService.login(cleanUsername, cleanPassword)
+
+      // user state mehet AuthProviderbe
       auth.login(user)
+
+      // UX: ürítés
+      setUsername('')
+      setPassword('')
 
       setMessage({ type: 'success', text: 'Sikeres bejelentkezés...' })
 
-      // Kis késleltetés UX miatt (opcionális)
       setTimeout(() => {
         navigate(from, { replace: true })
       }, 300)
