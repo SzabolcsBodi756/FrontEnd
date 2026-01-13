@@ -5,8 +5,8 @@ import enemyPng from '../assets/Enemy.png'
 import asteroidPng from '../assets/Asteroid.png'
 import { useNavigate } from 'react-router-dom'
 
-import { useAuth } from '../auth/AuthProvider'
-import { submitScore, getAdminUser, extractHighScoreForGame } from '../services/gameService'
+import { submitScore, getMyScores, extractHighScoreForGame } from '../services/GameService'
+
 
 export default function Game1() {
   const GAME_NAME = 'Fighter'
@@ -33,7 +33,6 @@ export default function Game1() {
   const [ended, setEnded] = useState(false)
 
   const navigate = useNavigate()
-  const auth = useAuth()
 
   // sprite images refs
   const enemyImgsRef = useRef([])
@@ -41,25 +40,18 @@ export default function Game1() {
 
   // --- High score lekérés DB-ből ---
   async function refreshHighScoreFromDb() {
-    const user = auth?.user || null
-    const userId = user?.id || user?.Id
-    if (!userId) {
-      setHighScore(0)
-      highScoreRef.current = 0
-      return
-    }
+  try {
+    const scores = await getMyScores()
+    const { highScore: dbHigh } = extractHighScoreForGame(scores, GAME_NAME)
 
-    try {
-      const adminUser = await getAdminUser(userId)
-      const { highScore: dbHigh } = extractHighScoreForGame(adminUser, GAME_NAME)
-      const hs = Number(dbHigh) || 0
-      setHighScore(hs)
-      highScoreRef.current = hs
-    } catch (e) {
-      console.warn('Failed to refresh high score', e)
-      // UI marad a korábbi értéken
-    }
+    const hs = Number(dbHigh) || 0
+    setHighScore(hs)
+    highScoreRef.current = hs
+  } catch (e) {
+    console.warn('Failed to refresh high score', e)
   }
+}
+
 
   // sizing
   function resizeCanvas() {
@@ -106,35 +98,32 @@ export default function Game1() {
 
   // High score frissítés + feltöltés (ha kell)
   function updateHighScoreIfNeeded(newScore) {
-    if (newScore > highScoreRef.current) {
-      highScoreRef.current = newScore
-      setHighScore(newScore)
+  if (newScore > highScoreRef.current) {
+    highScoreRef.current = newScore
+    setHighScore(newScore)
 
-      const user = auth?.user || null
-      if (user) {
-        // submitScore nálad GET-tel ellenőrizhet, így ez biztonságos "fire-and-forget"
-        submitScore(GAME_NAME, newScore, user)
-      }
-    }
+    // fire-and-forget, tokenes
+    submitScore(GAME_NAME, newScore)
   }
+}
+
 
   async function gameOver() {
-    stopGame()
-    setEnded(true)
-    endedRef.current = true
+  stopGame()
+  setEnded(true)
+  endedRef.current = true
 
-    // végén is próbáljuk feltölteni + lehúzni friss highscore-t
-    const user = auth?.user || null
-    if (user) {
-      try {
-        await submitScore(GAME_NAME, scoreRef.current, user)
-      } catch (e) {
-        console.warn('submitScore failed', e)
-      }
-    }
+  const finalScore = Number(scoreRef.current) || 0
 
-    await refreshHighScoreFromDb()
+  try {
+    await submitScore(GAME_NAME, finalScore)
+  } catch (e) {
+    console.warn('submitScore failed', e)
   }
+
+  await refreshHighScoreFromDb()
+}
+
 
   // main update + draw loop
   function loop() {

@@ -1,8 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import './Game3.css'
 import snakeBack from '../assets/SnakeBack.png'
-import { useAuth } from '../auth/AuthProvider'
-import { submitScore, getAdminUser, extractHighScoreForGame } from '../services/gameService'
+import { submitScore, getMyScores, extractHighScoreForGame } from '../services/GameService'
 import { useNavigate } from 'react-router-dom'
 
 export default function Game3() {
@@ -36,7 +35,6 @@ export default function Game3() {
   const BASE_DELAY = 120
   const MAX_SIZE = 1000
 
-  const auth = useAuth()
   const navigate = useNavigate()
 
   const particlesRef = useRef([])
@@ -63,25 +61,18 @@ export default function Game3() {
 
   // --- High score lekérés DB-ből ---
   async function refreshHighScoreFromDb() {
-    const user = auth?.user || null
-    const userId = user?.id || user?.Id
-    if (!userId) {
-      setHighScore(0)
-      highScoreRef.current = 0
-      return
-    }
+  try {
+    const scores = await getMyScores()
+    const { highScore: dbHigh } = extractHighScoreForGame(scores, GAME_NAME)
 
-    try {
-      const adminUser = await getAdminUser(userId)
-      const { highScore: dbHigh } = extractHighScoreForGame(adminUser, GAME_NAME)
-      const hs = Number(dbHigh) || 0
-      setHighScore(hs)
-      highScoreRef.current = hs
-    } catch (e) {
-      console.warn('Failed to refresh high score', e)
-      // UI marad a korábbi értéken
-    }
+    const hs = Number(dbHigh) || 0
+    setHighScore(hs)
+    highScoreRef.current = hs
+  } catch (e) {
+    console.warn('Failed to refresh high score', e)
   }
+}
+
 
   useEffect(() => {
     initGame({ preserveEnded: false })
@@ -275,22 +266,22 @@ export default function Game3() {
   }
 
   async function gameOver() {
-    stopLoop()
+  stopLoop()
 
-    setEnded(true)
-    endedRef.current = true
+  setEnded(true)
+  endedRef.current = true
 
-    const user = auth?.user || null
-    if (user) {
-      try {
-        await submitScore(GAME_NAME, scoreRef.current, user)
-      } catch (e) {
-        console.warn('submitScore failed', e)
-      }
-    }
+  const finalScore = Number(scoreRef.current) || 0
 
-    await refreshHighScoreFromDb()
+  try {
+    await submitScore(GAME_NAME, finalScore)
+  } catch (e) {
+    console.warn('submitScore failed', e)
   }
+
+  await refreshHighScoreFromDb()
+}
+
 
   function step() {
     const cols = colsRef.current
@@ -329,15 +320,13 @@ export default function Game3() {
 
       // ha current score meghaladja a high score-t: UI azonnal frissül + DB update
       if (scoreRef.current > highScoreRef.current) {
-        highScoreRef.current = scoreRef.current
-        setHighScore(scoreRef.current)
+  highScoreRef.current = scoreRef.current
+  setHighScore(scoreRef.current)
 
-        const user = auth?.user || null
-        if (user) {
-          // submitScore nálad GET-tel újra ellenőrzi, így biztonságos
-          submitScore(GAME_NAME, scoreRef.current, user)
-        }
-      }
+  // JWT-s, ezért nem kell user paraméter
+  submitScore(GAME_NAME, scoreRef.current)
+}
+
 
       spawnParticles(f.x * CELL, f.y * CELL, f.type === 'bonus' ? '#ffd86b' : '#ff6b6b')
       foodRef.current = spawnFood()

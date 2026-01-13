@@ -6,14 +6,13 @@ import arcadeBg from '../assets/arcade.png'
 import cardFrontImg from '../assets/kartya.jpg'
 
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/AuthProvider'
-import { submitScore, getAdminUser, extractHighScoreForGame } from '../services/gameService'
+import { submitScore, getMyScores, extractHighScoreForGame } from '../services/GameService'
+
 
 export default function Game2() {
   const GAME_NAME = 'Memory'
 
   const navigate = useNavigate()
-  const auth = useAuth()
 
   const [running, setRunning] = useState(false)
   const [ended, setEnded] = useState(false)
@@ -56,36 +55,27 @@ export default function Game2() {
   }
 
   async function refreshHighScoreFromDb() {
-    const user = auth?.user || null
-    const userId = user?.id || user?.Id
-    if (!userId) {
+  try {
+    const scores = await getMyScores()
+    const { highScore: dbHigh } = extractHighScoreForGame(scores, GAME_NAME)
+
+    const raw = Number(dbHigh) || 0
+    highScoreDbRef.current = raw
+
+    // UI-ban: 0-t nem mutatunk, mert az "még nem játszott"
+    if (raw === 0) {
       setHighScore(null)
       highScoreRef.current = null
-      highScoreDbRef.current = 0
       return
     }
 
-    try {
-      const adminUser = await getAdminUser(userId)
-      const { highScore: dbHigh } = extractHighScoreForGame(adminUser, GAME_NAME)
-
-      const raw = Number(dbHigh) || 0
-      highScoreDbRef.current = raw
-
-      // UI-ban: 0-t nem mutatunk, mert az "még nem játszott"
-      if (raw === 0) {
-        setHighScore(null)
-        highScoreRef.current = null
-        return
-      }
-
-      // pozitív érték
-      setHighScore(raw)
-      highScoreRef.current = raw
-    } catch (e) {
-      console.warn('Failed to refresh high score', e)
-    }
+    setHighScore(raw)
+    highScoreRef.current = raw
+  } catch (e) {
+    console.warn('Failed to refresh high score', e)
   }
+}
+
 
   function resetGame({ preserveHigh = true } = {}) {
     setDeck(makeDeck())
@@ -107,37 +97,33 @@ export default function Game2() {
   }
 
   async function finishGame() {
-    setRunning(false)
-    setEnded(true)
+  setRunning(false)
+  setEnded(true)
 
-    const user = auth?.user || null
-    if (!user) return
+  const current = flipsRef.current
+  const dbHighRaw = highScoreDbRef.current // 0 is lehet
 
-    const current = flipsRef.current
-    const dbHighRaw = highScoreDbRef.current // 0 is lehet
+  // szabály: ha DB=0 => mindig mentsünk; különben csak ha current < dbHigh
+  const shouldUpdate = (dbHighRaw === 0) || (current < dbHighRaw)
 
-    // szabály: ha DB=0 => mindig mentsünk; különben csak ha current < dbHigh
-    const shouldUpdate = (dbHighRaw === 0) || (current < dbHighRaw)
+  if (shouldUpdate) {
+    try {
+      // Memory: lower is better, DB=0 -> mindig ments
+      await submitScore(GAME_NAME, current, { mode: 'lower', zeroMeansUnset: true })
 
-    if (shouldUpdate) {
-      try {
-        // Memory: lower is better, DB=0 -> mindig ments
-        await submitScore(GAME_NAME, current, user, { mode: 'lower', zeroMeansUnset: true })
-
-        // UI frissítés azonnal
-        setHighScore(current)
-        highScoreRef.current = current
-        highScoreDbRef.current = current
-      } catch (e) {
-        console.warn('submitScore failed', e)
-        // ha hiba volt, legalább olvassuk vissza, mi van a DB-ben
-        await refreshHighScoreFromDb()
-      }
-    } else {
-      // nincs javulás, de frissítjük a DB-ből (biztonság)
+      // UI frissítés azonnal
+      setHighScore(current)
+      highScoreRef.current = current
+      highScoreDbRef.current = current
+    } catch (e) {
+      console.warn('submitScore failed', e)
       await refreshHighScoreFromDb()
     }
+  } else {
+    await refreshHighScoreFromDb()
   }
+}
+
 
   function onCardClick(index) {
     if (lockRef.current) return
